@@ -1,84 +1,3 @@
-# from PyQt6.QtWidgets import QWidget, QVBoxLayout
-# from PyQt6.QtCore import QTimer
-# import matplotlib.pyplot as plt
-# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-# from matplotlib.animation import FuncAnimation
-# import pandas as pd
-
-# class CanvasWidget(QWidget):
-#     def __init__(self):
-#         super().__init__()
-#         self.setup_ui()
-#         self.simulation_animation = None
-        
-#     def setup_ui(self):
-#         layout = QVBoxLayout(self)
-#         self.figure, self.ax = plt.subplots(figsize=(10, 8))
-#         self.canvas = FigureCanvas(self.figure)
-#         layout.addWidget(self.canvas)
-        
-#         self.setup_plot()
-    
-#     def setup_plot(self):
-#         """Configurar el gráfico base"""
-#         self.ax.set_title("Robot Cortador - Visualización de Trayectorias")
-#         self.ax.set_xlabel("X [mm]")
-#         self.ax.set_ylabel("Y [mm]")
-#         self.ax.grid(True, alpha=0.3)
-#         self.ax.set_aspect('equal')
-    
-#     def plot_geometries(self, geometries):
-#         """Dibujar geometrías en el canvas"""
-#         self.ax.clear()
-#         self.setup_plot()
-        
-#         for i, geom in enumerate(geometries):
-#             x, y = geom.xy
-#             self.ax.plot(x, y, linewidth=2, label=f"Trayectoria {i+1}")
-        
-#         self.ax.legend()
-#         self.canvas.draw()
-    
-#     def start_simulation(self, trajectory_df: pd.DataFrame):
-#         """Iniciar simulación animada"""
-#         self.ax.clear()
-#         self.setup_plot()
-        
-#         # Plot todas las trayectorias
-#         for traj_id in trajectory_df['trajectory_id'].unique():
-#             traj_data = trajectory_df[
-#                 (trajectory_df['trajectory_id'] == traj_id) & 
-#                 (trajectory_df['point_type'] == 'path')
-#             ]
-#             if not traj_data.empty:
-#                 self.ax.plot(traj_data['x'], traj_data['y'], 'b-', alpha=0.3, linewidth=1)
-        
-#         # Punto para animación
-#         self.sim_point, = self.ax.plot([], [], 'ro', markersize=6, label='Posición Actual')
-#         self.ax.legend()
-        
-#         # Preparar datos para animación
-#         path_points = trajectory_df[trajectory_df['point_type'] == 'path']
-#         self.sim_data = list(zip(path_points['x'], path_points['y']))
-#         self.current_index = 0
-        
-#         # Iniciar animación
-#         self.simulation_animation = FuncAnimation(
-#             self.figure, self._update_simulation,
-#             frames=len(self.sim_data), interval=50, repeat=False, blit=True
-#         )
-        
-#         self.canvas.draw()
-    
-#     def _update_simulation(self, frame):
-#         """Actualizar frame de simulación"""
-#         if self.current_index < len(self.sim_data):
-#             x, y = self.sim_data[self.current_index]
-#             self.sim_point.set_data([x], [y])
-#             self.current_index += 1
-#         return [self.sim_point]
-
-
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QColor
@@ -101,6 +20,7 @@ class ModernNavigationToolbar(NavigationToolbar):
                 border-radius: 6px;
                 spacing: 3px;
                 padding: 5px;
+                margin: 5px;
             }
             QToolButton {
                 background-color: #3d3d3d;
@@ -108,6 +28,8 @@ class ModernNavigationToolbar(NavigationToolbar):
                 border-radius: 4px;
                 padding: 6px;
                 color: #ffffff;
+                min-width: 30px;
+                min-height: 30px;
             }
             QToolButton:hover {
                 background-color: #4d4d4d;
@@ -137,45 +59,159 @@ class CanvasWidget(QWidget):
         self.setup_modern_plot_style()
         
     def setup_ui(self):
-        """Configurar la interfaz del canvas"""
+        """Configurar la interfaz del canvas centrada"""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+        main_layout.setSpacing(10)
         
-        # Header del canvas
-        self.setup_header(main_layout)
+        # Header centrado
+        self.setup_centered_header(main_layout)
         
-        # Área de visualización
-        self.setup_canvas_area(main_layout)
+        # Área de visualización principal centrada
+        self.setup_centered_canvas(main_layout)
         
-        # Barra de estado
+        # Barra de estado centrada
         self.setup_status_bar(main_layout)
         
-    def setup_header(self, layout):
-        """Header con información y controles"""
+    def setup_centered_header(self, layout):
+        """Header centrado con información"""
         header_frame = QFrame()
         header_frame.setStyleSheet("""
             QFrame {
                 background-color: #2d2d2d;
-                border-bottom: 1px solid #444;
-                padding: 8px;
+                border: 1px solid #444;
+                border-radius: 8px;
+                padding: 12px;
             }
         """)
         
-        header_layout = QHBoxLayout(header_frame)
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Título
+        # Título principal centrado
         title_label = QLabel("VISUALIZACIÓN DE TRAYECTORIAS")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("""
             QLabel {
                 color: #5aa4db;
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 16px;
+                padding: 5px;
             }
         """)
         
-        # Controles de simulación
-        controls_layout = QHBoxLayout()
+        # Subtítulo
+        subtitle_label = QLabel("Trayectorias de Corte - Robot")
+        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle_label.setStyleSheet("""
+            QLabel {
+                color: #bdc3c7;
+                font-size: 12px;
+                padding: 2px;
+            }
+        """)
+        
+        header_layout.addWidget(title_label)
+        header_layout.addWidget(subtitle_label)
+        
+        layout.addWidget(header_frame)
+    
+    def setup_centered_canvas(self, layout):
+        """Área del canvas centrada y bien distribuida"""
+        # Contenedor principal para el canvas
+        canvas_container = QFrame()
+        canvas_container.setStyleSheet("""
+            QFrame {
+                background-color: #1e1e1e;
+                border: 1px solid #444;
+                border-radius: 8px;
+            }
+        """)
+        
+        canvas_layout = QVBoxLayout(canvas_container)
+        canvas_layout.setContentsMargins(10, 10, 10, 10)
+        canvas_layout.setSpacing(8)
+        
+        # Barra de herramientas centrada
+        self.setup_toolbar(canvas_layout)
+        
+        # Canvas centrado
+        self.setup_main_canvas(canvas_layout)
+        
+        # Controles de simulación centrados
+        self.setup_simulation_controls(canvas_layout)
+        
+        layout.addWidget(canvas_container, 1)  # Factor de estiramiento 1
+    
+    def setup_toolbar(self, layout):
+        """Toolbar centrada"""
+        toolbar_container = QFrame()
+        toolbar_container.setStyleSheet("""
+            QFrame {
+                background-color: transparent;
+            }
+        """)
+        
+        toolbar_layout = QHBoxLayout(toolbar_container)
+        toolbar_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Toolbar personalizada
+        self.figure, self.ax = plt.subplots(figsize=(10, 8), facecolor='#1e1e1e')
+        self.canvas = FigureCanvas(self.figure)
+        self.toolbar = ModernNavigationToolbar(self.canvas, self)
+        
+        toolbar_layout.addWidget(self.toolbar)
+        layout.addWidget(toolbar_container)
+    
+    def setup_main_canvas(self, layout):
+        """Canvas principal centrado"""
+        canvas_frame = QFrame()
+        canvas_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d2d;
+                border: 1px solid #555;
+                border-radius: 6px;
+                padding: 0px;
+            }
+        """)
+        
+        canvas_frame_layout = QVBoxLayout(canvas_frame)
+        canvas_frame_layout.setContentsMargins(0, 0, 0, 0)
+        canvas_frame_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Canvas centrado dentro del frame
+        canvas_inner_layout = QHBoxLayout()
+        canvas_inner_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        canvas_inner_layout.addWidget(self.canvas)
+        
+        canvas_frame_layout.addLayout(canvas_inner_layout)
+        layout.addWidget(canvas_frame, 1)  # Factor de estiramiento 1
+    
+    def setup_simulation_controls(self, layout):
+        """Controles de simulación centrados"""
+        controls_frame = QFrame()
+        controls_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d2d;
+                border: 1px solid #444;
+                border-radius: 6px;
+                padding: 8px;
+            }
+        """)
+        
+        controls_layout = QHBoxLayout(controls_frame)
+        controls_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        controls_layout.setSpacing(15)
+        
+        # Información de estado
+        info_label = QLabel("Estado de Simulación:")
+        info_label.setStyleSheet("""
+            QLabel {
+                color: #bdc3c7;
+                font-weight: bold;
+                font-size: 11px;
+            }
+        """)
         
         self.sim_btn = QPushButton("▶ Iniciar Simulación")
         self.sim_btn.setStyleSheet("""
@@ -183,9 +219,10 @@ class CanvasWidget(QWidget):
                 background-color: #27ae60;
                 color: white;
                 border: none;
-                border-radius: 4px;
-                padding: 6px 12px;
+                border-radius: 5px;
+                padding: 8px 16px;
                 font-weight: bold;
+                min-width: 140px;
             }
             QPushButton:hover {
                 background-color: #2ecc71;
@@ -204,9 +241,10 @@ class CanvasWidget(QWidget):
                 background-color: #e74c3c;
                 color: white;
                 border: none;
-                border-radius: 4px;
-                padding: 6px 12px;
+                border-radius: 5px;
+                padding: 8px 16px;
                 font-weight: bold;
+                min-width: 80px;
             }
             QPushButton:hover {
                 background-color: #c0392b;
@@ -219,41 +257,22 @@ class CanvasWidget(QWidget):
         self.stop_btn.clicked.connect(self.stop_simulation)
         self.stop_btn.setEnabled(False)
         
+        controls_layout.addWidget(info_label)
         controls_layout.addWidget(self.sim_btn)
         controls_layout.addWidget(self.stop_btn)
         controls_layout.addStretch()
         
-        header_layout.addWidget(title_label)
-        header_layout.addStretch()
-        header_layout.addLayout(controls_layout)
-        
-        layout.addWidget(header_frame)
-    
-    def setup_canvas_area(self, layout):
-        """Área principal del canvas"""
-        canvas_layout = QVBoxLayout()
-        canvas_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Crear figura con estilo moderno
-        self.figure, self.ax = plt.subplots(figsize=(10, 8), facecolor='#1e1e1e')
-        self.canvas = FigureCanvas(self.figure)
-        
-        # Toolbar personalizada
-        self.toolbar = ModernNavigationToolbar(self.canvas, self)
-        
-        canvas_layout.addWidget(self.toolbar)
-        canvas_layout.addWidget(self.canvas)
-        
-        layout.addLayout(canvas_layout)
+        layout.addWidget(controls_frame)
     
     def setup_status_bar(self, layout):
-        """Barra de estado inferior"""
+        """Barra de estado centrada"""
         status_frame = QFrame()
         status_frame.setStyleSheet("""
             QFrame {
                 background-color: #2d2d2d;
-                border-top: 1px solid #444;
-                padding: 6px;
+                border: 1px solid #444;
+                border-radius: 6px;
+                padding: 8px 12px;
             }
             QLabel {
                 color: #bdc3c7;
@@ -263,11 +282,21 @@ class CanvasWidget(QWidget):
         
         status_layout = QHBoxLayout(status_frame)
         
-        self.status_label = QLabel("Listo para cargar trayectorias")
+        # Estado actual
+        self.status_label = QLabel("🟢 Listo - Cargue un archivo DXF para comenzar")
+        self.status_label.setStyleSheet("font-weight: bold;")
+        
+        # Progreso
         self.progress_label = QLabel("")
+        self.progress_label.setStyleSheet("color: #5aa4db; font-weight: bold;")
+        
+        # Información de coordenadas
+        self.coords_label = QLabel("X: -- | Y: --")
+        self.coords_label.setStyleSheet("color: #f39c12; font-family: monospace;")
         
         status_layout.addWidget(self.status_label)
         status_layout.addStretch()
+        status_layout.addWidget(self.coords_label)
         status_layout.addWidget(self.progress_label)
         
         layout.addWidget(status_frame)
@@ -289,15 +318,15 @@ class CanvasWidget(QWidget):
         self.ax.spines['right'].set_visible(False)
     
     def setup_plot(self):
-        """Configurar el gráfico base con estilo moderno"""
+        """Configurar el gráfico base con estilo moderno y centrado"""
         self.ax.clear()
         self.ax.set_facecolor('#2d2d2d')
         
-        # Títulos y etiquetas con estilo moderno
-        self.ax.set_title("Trayectorias de Corte - Robot", 
-                         color='#5aa4db', fontsize=12, fontweight='bold', pad=15)
-        self.ax.set_xlabel("Coordenada X [mm]", color='#bdc3c7', fontsize=10, labelpad=8)
-        self.ax.set_ylabel("Coordenada Y [mm]", color='#bdc3c7', fontsize=10, labelpad=8)
+        # Títulos y etiquetas con estilo moderno - CENTRADOS
+        self.ax.set_title("Sistema de Coordenadas de Corte", 
+                         color='#5aa4db', fontsize=14, fontweight='bold', pad=20)
+        self.ax.set_xlabel("Coordenada X [mm]", color='#bdc3c7', fontsize=11, labelpad=10)
+        self.ax.set_ylabel("Coordenada Y [mm]", color='#bdc3c7', fontsize=11, labelpad=10)
         
         # Grid moderno
         self.ax.grid(True, alpha=0.2, color='#5aa4db', linestyle='-', linewidth=0.5)
@@ -310,15 +339,20 @@ class CanvasWidget(QWidget):
         self.ax.spines['top'].set_visible(False)
         self.ax.spines['right'].set_visible(False)
         
-        # Líneas de referencia en el origen
-        self.ax.axhline(y=0, color='#e74c3c', linestyle='--', alpha=0.4, linewidth=0.8)
-        self.ax.axvline(x=0, color='#e74c3c', linestyle='--', alpha=0.4, linewidth=0.8)
+        # Líneas de referencia en el origen - MÁS VISIBLES
+        self.ax.axhline(y=0, color='#e74c3c', linestyle='--', alpha=0.6, linewidth=1.2)
+        self.ax.axvline(x=0, color='#e74c3c', linestyle='--', alpha=0.6, linewidth=1.2)
         
-        # Texto de origen
-        self.ax.text(0.02, 0.98, 'Origen (0,0)', transform=self.ax.transAxes, 
-                    color='#e74c3c', fontsize=8, alpha=0.7,
-                    verticalalignment='top', bbox=dict(boxstyle='round,pad=0.3', 
-                    facecolor='#1e1e1e', alpha=0.8))
+        # Texto de origen mejorado
+        self.ax.text(0.02, 0.98, 'ORIGEN (0,0)', transform=self.ax.transAxes, 
+                    color='#e74c3c', fontsize=10, fontweight='bold', alpha=0.8,
+                    verticalalignment='top', 
+                    bbox=dict(boxstyle='round,pad=0.5', facecolor='#1e1e1e', 
+                            edgecolor='#e74c3c', alpha=0.9))
+        
+        # Asegurar que el gráfico esté centrado
+        self.ax.set_xlim(-100, 100)
+        self.ax.set_ylim(-100, 100)
     
     def plot_geometries(self, geometries):
         """Dibujar geometrías en el canvas con estilo moderno"""
@@ -335,32 +369,46 @@ class CanvasWidget(QWidget):
             color = colors[i % len(colors)]
             
             # Línea principal
-            self.ax.plot(x, y, linewidth=2.5, color=color, 
-                        label=f"Trayectoria {i+1}", alpha=0.9,
-                        marker='o', markersize=3, markevery=10)
+            line = self.ax.plot(x, y, linewidth=2.5, color=color, 
+                               label=f"Trayectoria {i+1}", alpha=0.9,
+                               marker='o', markersize=4, markevery=8)[0]
             
             # Puntos de inicio/fin destacados
-            self.ax.plot(x[0], y[0], 'o', markersize=8, color=color, 
-                        markeredgecolor='white', markeredgewidth=1.5)
-            self.ax.plot(x[-1], y[-1], 's', markersize=8, color=color,
-                        markeredgecolor='white', markeredgewidth=1.5)
+            self.ax.plot(x[0], y[0], 'o', markersize=10, color=color, 
+                        markeredgecolor='white', markeredgewidth=2,
+                        label=f'_Inicio {i+1}' if i == 0 else "")
+            self.ax.plot(x[-1], y[-1], 's', markersize=10, color=color,
+                        markeredgecolor='white', markeredgewidth=2,
+                        label=f'_Fin {i+1}' if i == 0 else "")
         
-        # Leyenda moderna
-        legend = self.ax.legend(loc='upper right', framealpha=0.9, 
+        # Leyenda moderna y centrada
+        legend = self.ax.legend(loc='upper right', framealpha=0.95, 
                                facecolor='#2d2d2d', edgecolor='#5aa4db',
-                               fontsize=9, labelcolor='#bdc3c7')
+                               fontsize=10, labelcolor='#bdc3c7',
+                               bbox_to_anchor=(0.98, 0.98))
         legend.get_frame().set_linewidth(1.5)
         
-        # Ajustar límites con margen
-        self.ax.autoscale(enable=True, axis='both', tight=False)
-        x_margin = (self.ax.get_xlim()[1] - self.ax.get_xlim()[0]) * 0.1
-        y_margin = (self.ax.get_ylim()[1] - self.ax.get_ylim()[0]) * 0.1
-        self.ax.set_xlim(self.ax.get_xlim()[0] - x_margin, self.ax.get_xlim()[1] + x_margin)
-        self.ax.set_ylim(self.ax.get_ylim()[0] - y_margin, self.ax.get_ylim()[1] + y_margin)
+        # Ajustar límites con margen para mejor visualización
+        all_x = []
+        all_y = []
+        for geom in geometries:
+            x, y = geom.xy
+            all_x.extend(x)
+            all_y.extend(y)
+        
+        if all_x and all_y:
+            x_margin = (max(all_x) - min(all_x)) * 0.15
+            y_margin = (max(all_y) - min(all_y)) * 0.15
+            self.ax.set_xlim(min(all_x) - x_margin, max(all_x) + x_margin)
+            self.ax.set_ylim(min(all_y) - y_margin, max(all_y) + y_margin)
         
         self.canvas.draw()
-        self.status_label.setText(f"✅ {len(geometries)} trayectorias cargadas")
+        self.status_label.setText(f"✅ {len(geometries)} trayectorias cargadas y centradas")
         self.sim_btn.setEnabled(True)
+        
+        # Actualizar información de coordenadas
+        if all_x and all_y:
+            self.coords_label.setText(f"X: [{min(all_x):.1f} : {max(all_x):.1f}] | Y: [{min(all_y):.1f} : {max(all_y):.1f}]")
     
     def start_simulation(self, trajectory_df: pd.DataFrame):
         """Iniciar simulación animada con estilo moderno"""
@@ -386,34 +434,36 @@ class CanvasWidget(QWidget):
             ]
             if not traj_data.empty:
                 self.ax.plot(traj_data['x'], traj_data['y'], 
-                           color=colors[i], alpha=0.3, linewidth=2, 
+                           color=colors[i], alpha=0.4, linewidth=2.5, 
                            label=f"_Trayectoria {traj_id+1}")
         
         # Elementos de simulación
         self.sim_point, = self.ax.plot([], [], 'o', 
-                                     markersize=12, color='#e74c3c',
+                                     markersize=14, color='#e74c3c',
                                      markeredgecolor='white', 
-                                     markeredgewidth=2,
+                                     markeredgewidth=2.5,
                                      label='Cabeza de Corte')
         
         # Rastro de la simulación
         self.sim_trail, = self.ax.plot([], [], '-', 
-                                     color='#f39c12', alpha=0.6, linewidth=1.5)
+                                     color='#f39c12', alpha=0.7, linewidth=2.0)
         
-        # Leyenda
-        self.ax.legend(loc='upper right', framealpha=0.9)
+        # Leyenda centrada
+        legend = self.ax.legend(loc='upper right', framealpha=0.95)
+        legend.get_frame().set_facecolor('#2d2d2d')
         
         # Iniciar simulación
         self.current_sim_index = 0
         self.trail_x, self.trail_y = [], []
         self.is_simulating = True
         
-        self.sim_btn.setEnabled(False)
+        self.sim_btn.setText("⏸ Pausar")
+        self.sim_btn.setEnabled(True)
         self.stop_btn.setEnabled(True)
         self.status_label.setText("🎬 Simulación en progreso...")
         
         # Usar QTimer para mejor control
-        self.simulation_timer.start(10)  # 30ms entre frames
+        self.simulation_timer.start(25)  # 25ms entre frames para mayor suavidad
         
         self.simulationStarted.emit()
     
@@ -429,6 +479,9 @@ class CanvasWidget(QWidget):
             self.trail_x.append(x)
             self.trail_y.append(y)
             self.sim_trail.set_data(self.trail_x, self.trail_y)
+            
+            # Actualizar coordenadas en tiempo real
+            self.coords_label.setText(f"X: {x:.1f} | Y: {y:.1f}")
             
             # Actualizar progreso
             progress = int((self.current_sim_index + 1) / len(self.sim_data) * 100)
@@ -467,7 +520,8 @@ class CanvasWidget(QWidget):
         self.sim_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.progress_label.setText("")
-        self.status_label.setText("⏹ Simulación completada")
+        self.status_label.setText("✅ Simulación completada")
+        self.coords_label.setText("Simulación finalizada")
         
         self.simulationFinished.emit()
     
@@ -475,10 +529,11 @@ class CanvasWidget(QWidget):
         """Limpiar el canvas"""
         self.setup_plot()
         self.canvas.draw()
-        self.status_label.setText("Canvas limpiado")
+        self.status_label.setText("🟢 Canvas limpiado - Listo para nueva carga")
         self.sim_btn.setEnabled(False)
         self.stop_btn.setEnabled(False)
         self.progress_label.setText("")
+        self.coords_label.setText("X: -- | Y: --")
         
         # Limpiar datos de simulación
         if hasattr(self, 'trajectory_df'):
