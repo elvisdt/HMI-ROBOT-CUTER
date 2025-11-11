@@ -1,0 +1,57 @@
+%% --- Leer Trayectoria ---
+function grupos = LeerTrayectoria(Z_HOME, offset)
+if nargin < 1, Z_HOME = 200; end
+if nargin < 2, offset = 50; end
+Z_CUT = Z_HOME - offset;
+
+% Selección de archivo
+[filename, pathname] = uigetfile({'*.txt;*.csv','Archivos TXT/CSV (*.txt,*.csv)'}, ...
+                                 'Selecciona el archivo de trayectoria');
+if isequal(filename,0), error('No se seleccionó ningún archivo.'); end
+filepath = fullfile(pathname, filename);
+
+% Lectura
+try
+    data = readmatrix(filepath, 'Delimiter', ' ', 'NumHeaderLines', 1);
+catch
+    T = readtable(filepath, 'ReadVariableNames', true);
+    data = table2array(T);
+end
+
+if size(data,2) == 1
+    try
+        data = readmatrix(filepath, 'Delimiter', ',', 'NumHeaderLines', 1);
+    catch
+        error('No se pudo leer el archivo. Revisa el formato (X Y con cabecera).');
+    end
+end
+
+if size(data,2) < 2
+    error('El archivo debe contener al menos dos columnas: X Y.');
+end
+
+X = data(:,1);
+Y = data(:,2);
+if size(data,2) >= 3
+    Z = data(:,3); Z(isnan(Z)) = Z_CUT;
+else
+    Z = Z_CUT * ones(size(X));
+end
+
+% Detectar separadores NaN
+idx_nan = find(isnan(X) | isnan(Y));
+idx_nan = [0; idx_nan; numel(X)+1];
+
+% Construir grupos
+grupos = {};
+for i = 1:length(idx_nan)-1
+    ini = idx_nan(i) + 1;
+    fin = idx_nan(i+1) - 1;
+    if fin >= ini
+        grupos{end+1} = [X(ini:fin), Y(ini:fin), Z(ini:fin)];
+    end
+end
+
+fprintf('📄 Se detectaron %d grupos de trayectoria.\n', numel(grupos));
+if isempty(grupos), error('No se encontraron grupos válidos en el archivo.'); end
+end

@@ -1,0 +1,26 @@
+%% main_SCARA.m - Simulación SCARA-CNC con control de velocidad
+clc; clear; close all;
+
+%% --- Parámetros del robot ---
+L1 = 650;          % mm
+L2 = 600;          % mm
+d2_inicial = 200;  % mm, posición inicial del eje prismático
+offset = 100;       % mm, descenso para corte
+velocidad = 500;    % mm/s, velocidad de corte
+
+%% 1. Leer archivo de trayectoria
+grupos = LeerTrayectoria(d2_inicial, offset);  % devuelve cell array de grupos [X,Y,Z]
+
+%% 2. Interpolar suavemente cada grupo
+paso_mm = 1.5;  % resolución de interpolación
+tray_suave = InterpolarTrayectoria(grupos, paso_mm); % devuelve [X,Y,Z]
+
+%% 3. Calcular cinemática inversa
+[theta1, d2_vals, theta3] = CinematicaInversa_SCARA(tray_suave, L1, L2);
+
+%% 4. Animar el robot con control de velocidad
+AnimarTrayectoria(tray_suave, theta1, theta3, d2_vals, L1, L2, 'VELOCIDAD', velocidad, ...
+                  'Z_HOME', d2_inicial, 'Z_CUT', d2_inicial - offset);
+
+%% 5. Mensaje de finalización
+disp('✅ Simulación SCARA-CNC completada.');

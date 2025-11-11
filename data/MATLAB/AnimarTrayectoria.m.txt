@@ -1,0 +1,140 @@
+function AnimarTrayectoria(tray, theta1, theta3, d2, L1, L2, varargin)
+% Simula y anima la trayectoria del robot SCARA-CNC en 3D
+% Colores: amarillo = corte
+% Mantiene bloques separados sin borrar los anteriores
+% El robot SCARA siempre permanece visible
+
+% --- Parámetros por defecto ---
+params.Z_CUT    = 150;
+params.Z_HOME   = 200;
+params.VELOCIDAD = 50;
+params.PASOS_Z   = 20;
+params.X_LIM = [-300 1000];
+params.Y_LIM = [-300 1000];
+params.Z_LIM = [0 300];
+params = parse_pv_pairs(params, varargin{:});
+
+% --- Inicializar figura ---
+figure('Name','Simulación SCARA-CNC 3D','Color','k');
+axes_handle = gca;
+axis(axes_handle,'manual'); hold(axes_handle,'on');
+xlabel('X [mm]','Color','w'); ylabel('Y [mm]','Color','w'); zlabel('Z [mm]','Color','w');
+title('Robot SCARA-CNC','Color','w');
+set(axes_handle,'Color',[0.07 0.07 0.07],'XColor','w','YColor','w','ZColor','w');
+xlim(axes_handle, params.X_LIM); ylim(axes_handle, params.Y_LIM); zlim(axes_handle, params.Z_LIM);
+daspect(axes_handle,[1 1 1]); view(axes_handle, 45,30);
+
+% --- Plano de corte ---
+X_plane = [params.X_LIM(1) params.X_LIM(2) params.X_LIM(2) params.X_LIM(1)];
+Y_plane = [params.Y_LIM(1) params.Y_LIM(1) params.Y_LIM(2) params.Y_LIM(2)];
+Z_plane = [params.Z_CUT params.Z_CUT params.Z_CUT params.Z_CUT];
+fill3(X_plane, Y_plane, Z_plane, [0.4 0.4 0.4], 'FaceAlpha',0.2, 'EdgeColor','none');
+
+% --- Inicializar robot ---
+handles = struct();
+first_valid = find(~isnan(theta1),1);
+handles = Dibuja_SCARA_CNC(gca, theta1(first_valid), theta3(first_valid), L1, L2, handles, params.Z_HOME);
+
+% --- Variables de animación ---
+N = size(tray,1);
+z_actual = params.Z_HOME;
+prev_nan = true;
+tray_blocks = {}; % almacenar handles de cada bloque de corte
+done_X = []; done_Y = []; done_Z = [];
+
+for i = 1:N
+    if isnan(theta1(i)) || isnan(theta3(i)) || any(isnan(tray(i,:)))
+        prev_nan = true;
+        continue;
+    end
+
+    % --- Nuevo bloque ---
+    if prev_nan
+        % --- Guardar última punta antes de subir ---
+        if exist('prev_p3','var')
+            last_p = prev_p3;  % Última posición real del robot
+        else
+            last_p = calcular_punta(L1,L2,theta1(i),theta3(i),z_actual);
+        end
+
+        % --- Subida suave a Z_HOME ---
+        if abs(z_actual - params.Z_HOME) > 1e-3
+            z_steps = linspace(z_actual, params.Z_HOME, params.PASOS_Z);
+            for z_int = z_steps
+                handles = Dibuja_SCARA_CNC(gca, theta1(i), theta3(i), L1, L2, handles, z_int, last_p(1), last_p(2));
+                pause(0.01);
+            end
+            z_actual = params.Z_HOME;
+        end
+
+        % --- Desplazamiento suave en XY al inicio del nuevo bloque ---
+        XY_steps = 20; % número de pasos de interpolación
+        x_steps = linspace(last_p(1), tray(i,1), XY_steps);
+        y_steps = linspace(last_p(2), tray(i,2), XY_steps);
+        for k = 1:XY_steps
+            handles = Dibuja_SCARA_CNC(gca, theta1(i), theta3(i), L1, L2, handles, z_actual, x_steps(k), y_steps(k));
+            pause(0.01);
+        end
+
+        % --- Descenso suave a Z_CUT ---
+        z_steps = linspace(z_actual, params.Z_CUT, params.PASOS_Z);
+        for z_int = z_steps
+            handles = Dibuja_SCARA_CNC(gca, theta1(i), theta3(i), L1, L2, handles, z_int);
+            pause(0.01);
+        end
+        z_actual = params.Z_CUT;
+
+        % Crear nuevo plot3 para este bloque
+        done_X = []; done_Y = []; done_Z = [];
+        tray_done = plot3(NaN, NaN, NaN, 'y-', 'LineWidth', 1.5);
+        tray_blocks{end+1} = tray_done;
+
+        prev_nan = false;
+    end
+
+    % --- Movimiento normal de corte ---
+    handles = Dibuja_SCARA_CNC(gca, theta1(i), theta3(i), L1, L2, handles, z_actual);
+
+    % --- Registrar punta ---
+    p3 = calcular_punta(L1,L2,theta1(i),theta3(i),z_actual);
+    done_X(end+1) = p3(1); done_Y(end+1) = p3(2); done_Z(end+1) = p3(3);
+    set(tray_blocks{end}, 'XData', done_X, 'YData', done_Y, 'ZData', done_Z);
+
+    % --- Guardar posición punta ---
+    prev_p3 = p3;
+
+    % --- Pausa según distancia ---
+    if i > 1 && ~any(isnan(tray(i-1,:)))
+        dist = norm(tray(i,1:3)-tray(i-1,1:3));
+        pause(dist / params.VELOCIDAD);
+    end
+end
+
+% --- Retorno final a Z_HOME ---
+last_valid = find(~isnan(theta1),1,'last');
+if abs(z_actual - params.Z_HOME) > 1e-3
+    z_steps = linspace(z_actual, params.Z_HOME, params.PASOS_Z);
+    for z_int = z_steps
+        handles = Dibuja_SCARA_CNC(gca, theta1(last_valid), theta3(last_valid), L1, L2, handles, z_int);
+        pause(0.01);
+    end
+    z_actual = params.Z_HOME;
+end
+
+drawnow;
+disp('✅ Animación SCARA-CNC completada.');
+end
+
+%% --- Función auxiliar calcular punta ---
+function p3 = calcular_punta(L1,L2,th1,th3,z)
+    p2 = [L1*cos(th1), L1*sin(th1), z];
+    p3 = [p2(1)+L2*cos(th1+th3), p2(2)+L2*sin(th1+th3), z];
+end
+
+%% --- Función auxiliar parsear parámetros ---
+function s = parse_pv_pairs(s,varargin)
+for k=1:2:numel(varargin)
+    name = varargin{k}; val = varargin{k+1};
+    if isfield(s,name), s.(name) = val; end
+end
+end

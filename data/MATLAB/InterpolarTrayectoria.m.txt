@@ -1,0 +1,58 @@
+%% --- Interpolador de Trayectoria ---
+function tray_total = InterpolarTrayectoria(grupos, PTS_POR_MM)
+if nargin < 2, PTS_POR_MM = 1; end
+
+MAX_STEP = 0.5;     % mm, distancia máxima entre puntos originales
+USE_PCHIP = true;   % true = pchip, false = spline
+tray_total = [];
+
+for gi = 1:numel(grupos)
+    tray = grupos{gi};
+    if size(tray,1) < 2, continue; end
+
+    % 1. Densificar la figura original
+    tray_dense = densify(tray, MAX_STEP);
+
+    % 2. Parametrizar por longitud de arco
+    diffs = diff(tray_dense);
+    seg_len = sqrt(sum(diffs.^2,2));
+    s = [0; cumsum(seg_len)];
+    total_len = s(end); if total_len == 0, continue; end
+
+    % 3. Reinterpolar con paso uniforme
+    n_pts = max(ceil(total_len * PTS_POR_MM), 2);
+    s_uniform = linspace(0, total_len, n_pts);
+
+    % Interpolación pchip o spline
+    if USE_PCHIP
+        xs = pchip(s, tray_dense(:,1), s_uniform);
+        ys = pchip(s, tray_dense(:,2), s_uniform);
+        zs = pchip(s, tray_dense(:,3), s_uniform);
+    else
+        xs = spline(s, tray_dense(:,1), s_uniform);
+        ys = spline(s, tray_dense(:,2), s_uniform);
+        zs = spline(s, tray_dense(:,3), s_uniform);
+    end
+
+    % Concatenar grupo interpolado con NaN separador
+    tray_total = [tray_total; xs(:), ys(:), zs(:); NaN NaN NaN]; %#ok<AGROW>
+    fprintf('Grupo %d: %d puntos interpolados.\n', gi, n_pts);
+end
+end
+
+% --- Densify ---
+function out = densify(pts, max_step)
+out = pts(1,:);
+for i = 1:size(pts,1)-1
+    a = pts(i,:); b = pts(i+1,:);
+    d = norm(b - a);
+    if d <= max_step
+        out = [out; b];
+    else
+        nseg = ceil(d / max_step);
+        t = linspace(0,1,nseg+1);
+        newpts = (1 - t')*a + t'*b;
+        out = [out; newpts(2:end,:)];
+    end
+end
+end

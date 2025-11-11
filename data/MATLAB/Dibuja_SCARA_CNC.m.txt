@@ -1,0 +1,43 @@
+function handles = Dibuja_SCARA_CNC(ax, theta1, theta3, L1, L2, handles, z, x_override, y_override)
+% Dibuja o actualiza el robot SCARA-CNC (R-R en XY, Z variable)
+% Opcional: x_override, y_override permiten interpolación XY entre bloques
+if nargin < 7, z = 0; end
+if nargin < 8, x_override = []; end
+if nargin < 9, y_override = []; end
+
+% --- Posiciones de la cinemática ---
+p0 = [0 0 0];                 
+p1 = [0 0 z];                 
+
+if ~isempty(x_override) && ~isempty(y_override)
+    p2 = [x_override, y_override, z] - [L2*cos(theta1+theta3), L2*sin(theta1+theta3), 0];
+    p3 = [x_override, y_override, z];
+else
+    p2 = p1 + [L1*cos(theta1), L1*sin(theta1), 0]; 
+    p3 = p2 + [L2*cos(theta1+theta3), L2*sin(theta1+theta3), 0];
+end
+
+% --- Crear o actualizar gráficos ---
+if isempty(handles) || ~all(isfield(handles,{'brazoPrismatico','brazo1','brazo2','tool'}))
+    axes(ax); hold(ax,'on');
+    handles.brazoPrismatico = plot3(ax, [p0(1) p1(1)], [p0(2) p1(2)], [p0(3) p1(3)], 'Color',[0.5 0.5 0.5], 'LineWidth',6);
+    handles.brazo1 = plot3(ax, [p1(1) p2(1)], [p1(2) p2(2)], [p1(3) p2(3)], 'b-o','LineWidth',6,'MarkerFaceColor','b');
+    handles.brazo2 = plot3(ax, [p2(1) p3(1)], [p2(2) p3(2)], [p2(3) p3(3)], 'r-o','LineWidth',6,'MarkerFaceColor','r');
+    handles.tool = scatter3(ax, p3(1), p3(2), p3(3), 100, 'g', 'filled');
+    daspect(ax,[1 1 1]); xlabel(ax,'X [mm]'); ylabel(ax,'Y [mm]'); zlabel(ax,'Z [mm]');
+    view(ax,135,25); drawnow;
+else
+    if isfield(handles,'brazoPrismatico')
+        set(handles.brazoPrismatico,'XData',[p0(1) p1(1)],'YData',[p0(2) p1(2)],'ZData',[p0(3) p1(3)]);
+    end
+    if isfield(handles,'brazo1')
+        set(handles.brazo1,'XData',[p1(1) p2(1)],'YData',[p1(2) p2(2)],'ZData',[p1(3) p2(3)]);
+    end
+    if isfield(handles,'brazo2')
+        set(handles.brazo2,'XData',[p2(1) p3(1)],'YData',[p2(2) p3(2)],'ZData',[p2(3) p3(3)]);
+    end
+    if isfield(handles,'tool')
+        set(handles.tool,'XData',p3(1),'YData',p3(2),'ZData',p3(3));
+    end
+end
+end

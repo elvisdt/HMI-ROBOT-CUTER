@@ -1,0 +1,33 @@
+%% --- Cinemática Inversa SCARA ---
+function [theta1, d2, theta3] = CinematicaInversa_SCARA(tray_suave, L1, L2)
+n = size(tray_suave,1);
+theta1 = zeros(n,1);
+theta3 = zeros(n,1);
+d2 = zeros(n,1);
+
+for i = 1:n
+    x = tray_suave(i,1);
+    y = tray_suave(i,2);
+    z = tray_suave(i,3);
+
+    if isnan(x) || isnan(y) || isnan(z)
+        theta1(i) = NaN; theta3(i) = NaN; d2(i) = NaN; continue
+    end
+
+    % Radio proyectado en XY
+    r = sqrt(x^2 + y^2);
+
+    % Ley del coseno para theta3 (codo arriba)
+    cos_theta3 = (r^2 - L1^2 - L2^2)/(2*L1*L2);
+    cos_theta3 = max(min(cos_theta3,1),-1);
+    theta3(i) = atan2(sqrt(1 - cos_theta3^2), cos_theta3);
+
+    % Calcular theta1
+    k1 = L1 + L2*cos(theta3(i));
+    k2 = L2*sin(theta3(i));
+    theta1(i) = atan2(y,x) - atan2(k2,k1);
+
+    % Altura prismática
+    d2(i) = z;
+end
+end
