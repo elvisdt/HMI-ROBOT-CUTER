@@ -12,10 +12,10 @@ from PyQt6.QtWidgets import (
 )
 
 from ..data import CutProgram, CutShape, ShapeParameter
-from .bottom_nav import BottomNav, NavStep
+from .parts.bottom_nav import BottomNav, NavStep
 from .canvas import CanvasView
 from .properties_panel import PropertiesPanel
-from .sidebar import Sidebar, SidebarAction
+from .parts.sidebar import Sidebar, SidebarAction
 
 
 class MainWindow(QMainWindow):
